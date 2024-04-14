@@ -7,11 +7,11 @@ export function accessibility<T extends MemberNode>(): Comparator<T> {
 		if ("accessibility" in $) {
 			switch ($.accessibility) {
 				case "public":
-					return 0;
+					return 2;
 				case "protected":
 					return 1;
 				case "private":
-					return 2;
+					return 0;
 			}
 		}
 		switch ($.type) {

@@ -29,4 +29,8 @@ export const keyIdentifierName = (): Comparator<Node> =>
 			}
 		}
 		return null;
-	}, C.maybe(C.string));
+		// }, C.maybe(C.string));
+	}, C.maybe((a, b) => {
+		// console.log('STR CMP: ', a, ' <=> ', b, C.string(a, b));
+		return C.string(a, b);
+	}));

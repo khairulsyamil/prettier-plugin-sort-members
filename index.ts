@@ -15,4 +15,11 @@ export const options = {
 		description:
 			"Sort members alphabetically. Other criteria such as visibility precedes.",
 	},
+	respectDataDependency: {
+		type: "boolean",
+		category: "Global",
+		default: false,
+		description:
+			"Respect data dependency during sorting of members.",
+	},
 };

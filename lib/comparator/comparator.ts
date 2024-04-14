@@ -69,8 +69,14 @@ export const C = {
 	capture<T, U extends T>(
 		pred: (a: T) => a is U,
 		comp: Comparator<U>,
+		// site?: string
 	): Comparator<T> {
 		return (a, b) => {
+			// let an = extractName(a);
+			// let bn = extractName(b);
+
+			// console.log('CAPTURE ', site?? '', ': p(', an, ') = ', pred(a), ', p(', bn, ') ', pred(b), ', cmp: ', comp(a!, b!));
+
 			if (pred(a)) {
 				if (pred(b)) return comp(a, b);
 				return Order.Less;

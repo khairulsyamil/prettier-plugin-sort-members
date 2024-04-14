@@ -9,14 +9,24 @@ import { abstracted } from "./abstracted";
 import { methodKind } from "./method-kind";
 import { MemberNode, MemberType, MemberTypes } from "../ast/member-like";
 import { classMember } from "./class-member";
+import { dataDependency, DataDependencyMap, isAngularInject, isReadOnlyProperty } from "./data-dependency.ts";
 
 export type Options = {
 	sortMembersAlphabetically?: boolean;
+	respectDataDependency?: boolean;
 };
 
-export function comparator(options: Partial<Options>): Comparator<MemberNode> {
+export function comparator(options: Partial<Options>, dependencyMap?: DataDependencyMap): Comparator<MemberNode> {
 	const alpha = options.sortMembersAlphabetically === true;
+	const dataDep = options.respectDataDependency === true;
+
 	return C.chain<MemberNode>(
+		// Angular inject
+		C.by(isAngularInject, C.prefer),
+
+		// Readonly
+		C.by(isReadOnlyProperty, C.prefer),
+
 		// signature
 		C.capture(node(MemberTypes.TSIndexSignature), C.nop),
 
@@ -37,6 +47,7 @@ export function comparator(options: Partial<Options>): Comparator<MemberNode> {
 				),
 			),
 			C.chain(
+				dataDep ? dataDependency(dependencyMap ?? {}) : C.nop,
 				classMember(),
 				C.by(decorated, C.prefer),
 				C.by(abstracted, C.defer),
