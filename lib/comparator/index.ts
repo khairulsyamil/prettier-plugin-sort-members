@@ -1,3 +1,4 @@
+import { AST_NODE_TYPES } from "@typescript-eslint/types";
 import bt from "@babel/types";
 import { C, Comparator } from "./comparator";
 import { select } from "./select";
@@ -27,26 +28,41 @@ export function comparator(options: Partial<Options>, dependencyMap?: DataDepend
 		// Readonly
 		C.by(isReadOnlyProperty, C.prefer),
 
+		// // Data dependencies.
+		// dataDep ? dataDependency(dependencyMap ?? {}) : C.nop,
+
 		// signature
-		C.capture(node(MemberTypes.TSIndexSignature), C.nop),
+		C.capture(
+			node(MemberTypes.TSIndexSignature),
+			C.by(functionSignature, C.defer),
+			// 'SIG'
+		),
 
 		// field
 		C.capture(
-			select.or(node(MemberTypes.TSPropertySignature)).or(
-				select.and(
-					select
-						.or(node(MemberTypes.PropertyDefinition))
-						.or(node(MemberTypes.TSAbstractPropertyDefinition))
-						.or(
-							select.and(
-								bt.isNode,
-								select.or(bt.isClassProperty).or(bt.isClassPrivateProperty),
+			select
+				.or(
+					select.and(
+						node(MemberTypes.TSPropertySignature),
+						select.not(functionSignature),
+					),
+				)
+				.or(
+					select.and(
+						select
+							.or(node(MemberTypes.PropertyDefinition))
+							.or(node(MemberTypes.TSAbstractPropertyDefinition))
+							.or(
+								select.and(
+									bt.isNode,
+									select.or(bt.isClassProperty).or(bt.isClassPrivateProperty),
+								),
 							),
-						),
-					($) => !($.value && functionExpressions.includes($.value.type)),
+						($) => !($.value && functionExpressions.includes($.value.type)),
+					),
 				),
-			),
 			C.chain(
+				// tap(),
 				dataDep ? dataDependency(dependencyMap ?? {}) : C.nop,
 				classMember(),
 				C.by(decorated, C.prefer),
@@ -54,6 +70,7 @@ export function comparator(options: Partial<Options>, dependencyMap?: DataDepend
 				accessibility(),
 				alpha ? keyIdentifierName() : C.nop,
 			),
+			// 'FIELD'
 		),
 
 		// constructor signature for interface
@@ -74,6 +91,7 @@ export function comparator(options: Partial<Options>, dependencyMap?: DataDepend
 					($ as unknown as bt.TSConstructSignatureDeclaration).parameters.length
 				);
 			}, C.number),
+			// 'CONSTRUCTOR'
 		),
 
 		// method
@@ -103,7 +121,9 @@ export function comparator(options: Partial<Options>, dependencyMap?: DataDepend
 							$.value != null && functionExpressions.includes($.value.type),
 					),
 				)
-				.or(node(MemberTypes.TSPropertySignature)),
+				.or(
+					select.and(node(MemberTypes.TSPropertySignature), functionSignature),
+				),
 			C.chain(
 				methodKind(),
 				classMember(),
@@ -112,7 +132,18 @@ export function comparator(options: Partial<Options>, dependencyMap?: DataDepend
 				accessibility(),
 				alpha ? keyIdentifierName() : C.nop,
 			),
+			// 'METHOD'
 		),
+	);
+}
+
+function functionSignature(
+	node: MemberNode<
+		AST_NODE_TYPES.TSPropertySignature | AST_NODE_TYPES.TSIndexSignature
+	>,
+): boolean {
+	return (
+		node.typeAnnotation?.typeAnnotation.type === AST_NODE_TYPES.TSFunctionType
 	);
 }
 
